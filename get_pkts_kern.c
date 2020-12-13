@@ -51,6 +51,7 @@ int xdp_count(struct xdp_md *ctx) {
 		value = bpf_map_lookup_elem(&stat_map, &map_index);
 		if (value) {
 			__sync_fetch_and_add(value, 1);
+			/* if ICMP received count reaches to 5, drop all ICMP pkts */ 
 			if (*value > 5)
         		return XDP_DROP;
 		}
@@ -63,6 +64,7 @@ int xdp_count(struct xdp_md *ctx) {
 		pkt_len += sizeof(struct tcphdr);
 		if (data + pkt_len > data_end)
         	return XDP_DROP;
+		/* drop all OpenVPN pkts */
 		if (tcp->dest == htons(1194))
 			return XDP_DROP;
 	}
@@ -74,10 +76,11 @@ int xdp_count(struct xdp_md *ctx) {
 		pkt_len += sizeof(struct udphdr);
 		if (data + pkt_len > data_end)
         	return XDP_DROP;
+		/* drop all OpenVPN pkts */
 		if (udp->dest == htons(1194))
 			return XDP_DROP;
 	}
     return XDP_PASS;
 }
 
-char _license[] SEC("license") = "GPL";
+char _license[] SEC("license") = "BSD";
