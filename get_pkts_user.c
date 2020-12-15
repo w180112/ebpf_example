@@ -2,7 +2,6 @@
 /* Copyright (c) 2020 Huai-En Tseng <w180112@gmail.com>
  */
 
-#include <linux/bpf.h>
 #include <linux/if_link.h>
 #include <linux/limits.h>
 #include <net/if.h>
@@ -24,7 +23,6 @@
 
 int ifindex_list;
 struct bpf_object *obj;
-//struct get_pkts_kern *obj;
 
 static void int_exit(int sig)
 {
@@ -58,6 +56,11 @@ int main(int argc, char **argv)
 	int ret = 0;
 	struct bpf_map *map;
 
+	if (argc != 2) {
+		printf("Usage: ./get_pkts <interface name>\n");
+		return -1;
+	}
+
 	struct rlimit rlim_new = {
 		.rlim_cur	= RLIM_INFINITY,
 		.rlim_max	= RLIM_INFINITY,
@@ -71,14 +74,15 @@ int main(int argc, char **argv)
 	prog_fd = load_bpf_object_file__simple("get_pkts_kern.o");
 	if (prog_fd <= 0) {
 		fprintf(stderr, "ERR: loading file: %s\n", "get_pkts_kern.o");
-		return 40;
+		return -1;
 	}
 
 	if (attach) {
-		ifindex_list = if_nametoindex("enp7s0");
+		ifindex_list = if_nametoindex(argv[1]);
+
 		uint32_t xdp_flags = XDP_FLAGS_UPDATE_IF_NOEXIST;
-		if ((err = bpf_set_link_xdp_fd(ifindex_list, prog_fd, xdp_flags)) < 0) {
-			fprintf(stderr, "ERR: link set xdp unload failed (err=%d):%s\n", err, strerror(-err));
+		err = bpf_set_link_xdp_fd(ifindex_list, prog_fd, xdp_flags);
+		if (err == -EEXIST && !(xdp_flags & XDP_FLAGS_UPDATE_IF_NOEXIST)) {
 			uint32_t old_flags = xdp_flags;
 
 			xdp_flags &= ~XDP_FLAGS_MODES;
@@ -86,6 +90,21 @@ int main(int argc, char **argv)
 			err = bpf_set_link_xdp_fd(ifindex_list, -1, xdp_flags);
 			if (!err)
 				err = bpf_set_link_xdp_fd(ifindex_list, prog_fd, old_flags);
+		}
+		if (err < 0) {
+			fprintf(stderr, "ERR: ifindex(%d) link set xdp fd failed (%d): %s\n", ifindex_list, -err, strerror(-err));
+			switch (-err) {
+			case EBUSY:
+			case EEXIST:
+				fprintf(stderr, "XDP already loaded on this device %s\n", argv[1]);
+				break;
+			case ENOMEM:
+			case EOPNOTSUPP:
+				fprintf(stderr, "Native-XDP not supported on this device %s\n", argv[1]);
+				break;
+			default:
+				break;
+			}
 			goto cleanup;
 		}
 		map = bpf_object__find_map_by_name(obj, "stat_map");

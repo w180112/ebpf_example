@@ -5,8 +5,17 @@
 ######################################
 # Set variable
 ######################################	
+
+OS=$(shell lsb_release -si)
+ARCH=$(shell uname -m | sed 's/x86_//;s/i[3-6]86/32/')
+VER=$(shell lsb_release -sr)
+
 CC	= clang
-INCLUDE = 
+ifeq ($(OS),Ubuntu)
+    INCLUDE = -I/usr/include/asm-generic -I/usr/include/x86_64-linux-gnu
+else
+	INCLUDE = #-I/usr/include/asm-generic -I/usr/include/x86_64-linux-gnu
+endif
 CFLAGS = $(INCLUDE) -Wall -O2
 
 USR_TARGET = get_pkts
@@ -38,7 +47,7 @@ $(KRN_TARGET):
 
 $(USR_TARGET): $(USR_OBJ)
 	$(CC) $(CFLAGS) -Llibbpf/src $(USR_OBJ) -o $(USR_TARGET) \
-	-lbpf -lelf -lz
+	-lelf -lz libbpf/src/libbpf.a
 
 ######################################
 # Clean 
@@ -47,4 +56,4 @@ clean: $(CLEANSUBDIR)
 
 $(CLEANSUBDIR):
 	$(MAKE) -C  $(@:clean-%=%) clean
-	rm -f get_pkt *.o
+	rm -f $(USR_TARGET) *.o

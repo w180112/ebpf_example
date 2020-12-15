@@ -12,14 +12,19 @@ This is an eBPF / XDP example application using CO-RE in C.
 
 ## System required:
 
-1. Linux OS
+1. Linux OS with root account
 2. Kernel version newer than 5.0
+3. pre-request libraries: 
+ubuntu series OS:
+	# apt install zlib1g-dev gcc clang libelf -y
+Red-Hat series OS:
+	# yum install make elfutils-dev clang -y
 
 ## How to use:
 
 Git clone this repository
 
-	# git clone https://github.com/w180112/ebpf_example.git
+	# git clone --recurse-submodules https://github.com/w180112/ebpf_example.git
 
 Type
 
