@@ -12,9 +12,9 @@ VER=$(shell lsb_release -sr)
 
 CC	= clang
 ifeq ($(OS),Ubuntu)
-    INCLUDE = -I/usr/include/asm-generic -I/usr/include/x86_64-linux-gnu
+	INCLUDE = -I/usr/include/asm-generic -I/usr/include/x86_64-linux-gnu
 else
-	INCLUDE = #-I/usr/include/asm-generic -I/usr/include/x86_64-linux-gnu
+	INCLUDE = 
 endif
 CFLAGS = $(INCLUDE) -Wall -O2
 
