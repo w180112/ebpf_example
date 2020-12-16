@@ -21,12 +21,13 @@
 #include <assert.h>
 #include <sys/resource.h>
 
-int ifindex_list;
-struct bpf_object *obj;
+int 				ifindex_list;
+struct bpf_object 	*obj;
+uint32_t 			xdp_flags;
 
 static void int_exit(int sig)
 {
-	bpf_set_link_xdp_fd(ifindex_list, -1, 0);
+	bpf_set_link_xdp_fd(ifindex_list, -1, xdp_flags);
 	exit(0);
 }
 
@@ -56,8 +57,8 @@ int main(int argc, char **argv)
 	int ret = 0;
 	struct bpf_map *map;
 
-	if (argc != 2) {
-		printf("Usage: ./get_pkts <interface name>\n");
+	if (argc != 3) {
+		printf("Usage: ./get_pkts <interface name> <--skb-mode | --drv-mode>\n");
 		return -1;
 	}
 
@@ -79,8 +80,11 @@ int main(int argc, char **argv)
 
 	if (attach) {
 		ifindex_list = if_nametoindex(argv[1]);
-
-		uint32_t xdp_flags = XDP_FLAGS_UPDATE_IF_NOEXIST;
+		xdp_flags = XDP_FLAGS_UPDATE_IF_NOEXIST;
+		if (strncmp(argv[2], "--skb-mode", strlen(argv[2])) == 0)
+			xdp_flags |= XDP_FLAGS_SKB_MODE;
+		else
+			xdp_flags |= XDP_FLAGS_DRV_MODE;
 		err = bpf_set_link_xdp_fd(ifindex_list, prog_fd, xdp_flags);
 		if (err == -EEXIST && !(xdp_flags & XDP_FLAGS_UPDATE_IF_NOEXIST)) {
 			uint32_t old_flags = xdp_flags;
@@ -96,11 +100,11 @@ int main(int argc, char **argv)
 			switch (-err) {
 			case EBUSY:
 			case EEXIST:
-				fprintf(stderr, "XDP already loaded on this device %s\n", argv[1]);
+				fprintf(stderr, "XDP already loaded on the device %s\n", argv[1]);
 				break;
 			case ENOMEM:
 			case EOPNOTSUPP:
-				fprintf(stderr, "Native-XDP not supported on this device %s\n", argv[1]);
+				fprintf(stderr, "Native-XDP not supported on the device %s, try using --skb-mode\n", argv[1]);
 				break;
 			default:
 				break;
@@ -146,6 +150,6 @@ int main(int argc, char **argv)
 	}
 	return ret;
 cleanup:
-	bpf_set_link_xdp_fd(ifindex_list, -1, 0);
+	bpf_set_link_xdp_fd(ifindex_list, -1, xdp_flags);
 	return 1;
 }

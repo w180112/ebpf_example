@@ -19,7 +19,7 @@ This is an eBPF / XDP example application using CO-RE in C.
 ubuntu series OS:
 
 	# apt install zlib1g-dev gcc clang libelf -y
-	
+
 Red-Hat series OS:
 
 	# yum install make elfutils-dev clang -y
@@ -42,8 +42,10 @@ to compile
 
 Then
 
-	# ./get_pkts
+	# ./get_pkts <interface name> <option>
 
-To remove the binary files
+Note: The option here is --skb-mode or --drv-mode to determine native XDP mode is used or not
+
+To remove the binary and elf files
 
 	# make clean
