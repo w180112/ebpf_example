@@ -13,12 +13,11 @@ This is an eBPF / XDP example application using CO-RE in C.
 ## System required:
 
 1. Linux OS with root account
-2. Kernel version newer than 5.0
-3. pre-request libraries: 
+2. pre-request libraries: 
 
 ubuntu series OS:
 
-	# apt install zlib1g-dev gcc clang libelf -y
+	# apt install zlib1g-dev gcc clang libelf1 libelf-dev -y
 
 Red-Hat series OS:
 
