@@ -3,33 +3,17 @@
  */
 
 #define KBUILD_MODNAME "get_pkts"
-#include "libbpf/include/uapi/linux/bpf.h"
-#include <linux/in.h>
-#include <linux/if_ether.h>
-#include <linux/if_packet.h>
-#include <linux/if_vlan.h>
-#include <linux/ip.h>
-#include <linux/ipv6.h>
-#include <linux/tcp.h>
-#include <linux/udp.h>
-#include "libbpf/src/bpf_helpers.h"
+#include "vmlinux.h"
+#include <bpf_endian.h>
+#include <bpf_helpers.h>
+#include <bpf_core_read.h>
 
-#define htons(x) ((__be16)___constant_swab16((x)))
-#define htonl(x) ((__be32)___constant_swab32((x)))
-
-#define bpf_printk(fmt, ...)                                    \
-({                                                              \
-	char ____fmt[] = fmt;                                   \
-	bpf_trace_printk(____fmt, sizeof(____fmt),              \
-                         ##__VA_ARGS__);                        \
-})
-
-struct bpf_map_def SEC("maps") stat_map = {
-	.type = BPF_MAP_TYPE_ARRAY,
-	.key_size = sizeof(int),
-	.value_size = sizeof(long),
-	.max_entries = 64,
-};
+struct {
+	__uint(type, BPF_MAP_TYPE_ARRAY);
+	__type(key, int);
+    __type(value, long);
+	__uint(max_entries, 64);
+} stat_map SEC(".maps");
 
 SEC("get_pkts")
 int xdp_count(struct xdp_md *ctx) {
@@ -47,14 +31,13 @@ int xdp_count(struct xdp_md *ctx) {
 	if (data + pkt_len > data_end)
         return XDP_DROP;
 	map_index = ip->protocol;
+	
 	if (ip->protocol == IPPROTO_ICMP) {
 		value = bpf_map_lookup_elem(&stat_map, &map_index);
 		if (value) {
 			__sync_fetch_and_add(value, 1);
-			/* if ICMP received count reaches to 5, drop all ICMP pkts */ 
-			if (*value > 5)
-        		return XDP_DROP;
 		}
+		bpf_printk("rcv packet at queue %u, ip = %x\n", ctx->rx_queue_index, bpf_ntohs(ip->daddr));
 	}
 	else if (ip->protocol == IPPROTO_TCP) {
 		value = bpf_map_lookup_elem(&stat_map, &map_index);
@@ -64,9 +47,7 @@ int xdp_count(struct xdp_md *ctx) {
 		pkt_len += sizeof(struct tcphdr);
 		if (data + pkt_len > data_end)
         	return XDP_DROP;
-		/* drop all OpenVPN pkts */
-		if (tcp->dest == htons(1194))
-			return XDP_DROP;
+		bpf_printk("rcv packet at queue %u, ip = %x\n", ctx->rx_queue_index, bpf_ntohs(ip->daddr));
 	}
 	else if (ip->protocol == IPPROTO_UDP) {
 		value = bpf_map_lookup_elem(&stat_map, &map_index);
@@ -76,11 +57,9 @@ int xdp_count(struct xdp_md *ctx) {
 		pkt_len += sizeof(struct udphdr);
 		if (data + pkt_len > data_end)
         	return XDP_DROP;
-		/* drop all OpenVPN pkts */
-		if (udp->dest == htons(1194))
-			return XDP_DROP;
+		bpf_printk("rcv packet at queue %u, ip = %x\n", ctx->rx_queue_index, bpf_ntohs(ip->daddr));
 	}
     return XDP_PASS;
 }
 
-char _license[] SEC("license") = "BSD";
+char _license[] SEC("license") = "GPL";

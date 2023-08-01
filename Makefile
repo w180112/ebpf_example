@@ -16,7 +16,8 @@ ifeq ($(OS),Ubuntu)
 else
 	INCLUDE = 
 endif
-CFLAGS = $(INCLUDE) -Wall -O2
+INCLUDE += -Ilibbpf/src
+CFLAGS = $(INCLUDE) -Wall -O2 -g
 
 USR_TARGET = get_pkts
 USR_SRC = get_pkts_user.c
@@ -43,17 +44,18 @@ $(BUILDSUBDIR):
 # 	Must use \tab key after new line
 ######################################
 $(KRN_TARGET): 
+	bpftool btf dump file /sys/kernel/btf/vmlinux format c > vmlinux.h
 	$(CC) $(CFLAGS) -target bpf -c $(KRN_SRC) -o $(KRN_TARGET)
 
 $(USR_TARGET): $(USR_OBJ)
 	$(CC) $(CFLAGS) -Llibbpf/src $(USR_OBJ) -o $(USR_TARGET) \
-	-lelf -lz libbpf/src/libbpf.a
+	-lelf -lz -lbpf
 
 ######################################
 # Clean 
 ######################################
 clean: $(CLEANSUBDIR)
+	rm -f $(USR_TARGET) *.o
 
 $(CLEANSUBDIR):
 	$(MAKE) -C  $(@:clean-%=%) clean
-	rm -f $(USR_TARGET) *.o
