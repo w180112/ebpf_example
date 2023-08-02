@@ -37,7 +37,7 @@ int xdp_count(struct xdp_md *ctx) {
 		if (value) {
 			__sync_fetch_and_add(value, 1);
 		}
-		bpf_printk("rcv packet at queue %u, ip = %x\n", ctx->rx_queue_index, bpf_ntohs(ip->daddr));
+		bpf_printk("rcv packet at queue %u, ip = %x\n", ctx->rx_queue_index, bpf_ntohl(ip->daddr));
 	}
 	else if (ip->protocol == IPPROTO_TCP) {
 		value = bpf_map_lookup_elem(&stat_map, &map_index);
@@ -47,7 +47,7 @@ int xdp_count(struct xdp_md *ctx) {
 		pkt_len += sizeof(struct tcphdr);
 		if (data + pkt_len > data_end)
         	return XDP_DROP;
-		bpf_printk("rcv packet at queue %u, ip = %x\n", ctx->rx_queue_index, bpf_ntohs(ip->daddr));
+		bpf_printk("rcv packet at queue %u, ip = %x\n", ctx->rx_queue_index, bpf_ntohl(ip->daddr));
 	}
 	else if (ip->protocol == IPPROTO_UDP) {
 		value = bpf_map_lookup_elem(&stat_map, &map_index);
@@ -57,7 +57,7 @@ int xdp_count(struct xdp_md *ctx) {
 		pkt_len += sizeof(struct udphdr);
 		if (data + pkt_len > data_end)
         	return XDP_DROP;
-		bpf_printk("rcv packet at queue %u, ip = %x\n", ctx->rx_queue_index, bpf_ntohs(ip->daddr));
+		bpf_printk("rcv packet at queue %u, ip = %x\n", ctx->rx_queue_index, bpf_ntohl(ip->daddr));
 	}
     return XDP_PASS;
 }
