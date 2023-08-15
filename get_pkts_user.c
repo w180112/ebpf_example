@@ -112,9 +112,10 @@ int main(int argc, char **argv)
 
 			xdp_flags &= ~XDP_FLAGS_MODES;
 			xdp_flags |= (old_flags & XDP_FLAGS_SKB_MODE) ? XDP_FLAGS_DRV_MODE : XDP_FLAGS_SKB_MODE;
-			err = bpf_xdp_detach(ifindex_list, xdp_flags, NULL);
-			if (!err)
+			if (bpf_xdp_detach(ifindex_list, xdp_flags, NULL) == 0) {
+				printf("try to attach xdp again...\n");
 				err = bpf_xdp_attach(ifindex_list, prog_fd, old_flags, NULL);
+			}
 		}
 		if (err < 0) {
 			fprintf(stderr, "ERR: ifindex(%d) link set xdp fd failed (%d): %s\n", ifindex_list, -err, strerror(-err));

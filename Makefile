@@ -48,8 +48,8 @@ $(KRN_TARGET):
 	$(CC) $(CFLAGS) -target bpf -c $(KRN_SRC) -o $(KRN_TARGET)
 
 $(USR_TARGET): $(USR_OBJ)
-	$(CC) $(CFLAGS) -Llibbpf/src $(USR_OBJ) -o $(USR_TARGET) \
-	-lelf -lz -lbpf
+	$(CC) $(CFLAGS) $(USR_OBJ) -o $(USR_TARGET) \
+	-lelf -lz libbpf/src/libbpf.a
 
 ######################################
 # Clean 
